@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Achievements", "Achievements.vcxproj", "{E19A7469-CDFD-030E-7683-3CC462C5CF90}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|GTA-SA = Debug|GTA-SA
+		Release|GTA-SA = Release|GTA-SA
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E19A7469-CDFD-030E-7683-3CC462C5CF90}.Debug|GTA-SA.ActiveCfg = Debug GTA-SA|Win32
+		{E19A7469-CDFD-030E-7683-3CC462C5CF90}.Debug|GTA-SA.Build.0 = Debug GTA-SA|Win32
+		{E19A7469-CDFD-030E-7683-3CC462C5CF90}.Release|GTA-SA.ActiveCfg = Release GTA-SA|Win32
+		{E19A7469-CDFD-030E-7683-3CC462C5CF90}.Release|GTA-SA.Build.0 = Release GTA-SA|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
