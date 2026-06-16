@@ -20,7 +20,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          latest=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          latest=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
           if [ -z "$latest" ]; then
             next="v0.1.0"
           else
@@ -33,6 +33,18 @@ jobs:
         run: git clone --depth 1 https://github.com/DK22Pac/plugin-sdk.git "${{ runner.temp }}\plugin-sdk"
 
       - uses: microsoft/setup-msbuild@v2
+
+      - name: Build plugin-sdk
+        run: |
+          & "${{ runner.temp }}\plugin-sdk\tools\premake\premake5.exe" `
+            --file="${{ runner.temp }}\plugin-sdk\tools\premake\premake5.lua" `
+            --pluginsdkdir="${{ runner.temp }}\plugin-sdk" `
+            vs2022
+          msbuild "${{ runner.temp }}\plugin-sdk\plugin_sa\Plugin_SA.vcxproj" `
+            /p:Configuration=Release `
+            /p:Platform=Win32 `
+            /p:PlatformToolset=v145 `
+            /p:PLUGIN_SDK_DIR="${{ runner.temp }}\plugin-sdk"
 
       - name: Build (RetroAchievements)
         run: |
