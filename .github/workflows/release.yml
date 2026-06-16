@@ -43,6 +43,7 @@ jobs:
           msbuild "${{ runner.temp }}\plugin-sdk\plugin_sa\Plugin_SA.vcxproj" `
             /p:Configuration=Release `
             /p:Platform=Win32 `
+            /p:PlatformToolset=v145 `
             /p:PLUGIN_SDK_DIR="${{ runner.temp }}\plugin-sdk"
 
       - name: Build (RetroAchievements)
