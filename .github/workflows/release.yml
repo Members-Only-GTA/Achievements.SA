@@ -36,7 +36,7 @@ jobs:
 
       - name: Build plugin-sdk
         run: |
-          msbuild "${{ runner.temp }}\plugin-sdk\Plugin_SA\Plugin_SA.vcxproj" `
+          msbuild "${{ runner.temp }}\plugin-sdk\plugin_sa\Plugin_SA.vcxproj" `
             /p:Configuration=Release `
             /p:Platform=Win32
 
