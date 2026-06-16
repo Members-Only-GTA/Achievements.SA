@@ -34,6 +34,12 @@ jobs:
 
       - uses: microsoft/setup-msbuild@v2
 
+      - name: Build plugin-sdk
+        run: |
+          msbuild "${{ runner.temp }}\plugin-sdk\Plugin_SA\Plugin_SA.vcxproj" `
+            /p:Configuration=Release `
+            /p:Platform=Win32
+
       - name: Build (RetroAchievements)
         run: |
           msbuild Achievements.vcxproj `
