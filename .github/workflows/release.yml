@@ -42,7 +42,8 @@ jobs:
             vs2022
           msbuild "${{ runner.temp }}\plugin-sdk\plugin_sa\Plugin_SA.vcxproj" `
             /p:Configuration=Release `
-            /p:Platform=Win32
+            /p:Platform=Win32 `
+            /p:PLUGIN_SDK_DIR="${{ runner.temp }}\plugin-sdk"
 
       - name: Build (RetroAchievements)
         run: |
