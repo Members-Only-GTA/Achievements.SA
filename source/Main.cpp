@@ -4,7 +4,7 @@
 #include <CSprite2d.h>
 #include <CTxdStore.h>
 #include <CAudioEngine.h>
-#include <extensions/Screen.h>
+#include <CTheScripts.h>
 
 #include <string>
 #include <queue>
@@ -20,8 +20,20 @@ static constexpr float kIconSize    = 64.0f;
 static constexpr float kTextX       = kMargin + kIconSize + 10.0f;
 static constexpr float kTop         = 200.0f;
 
-static int       s_txdSlot = -1;
+int g_achTxdSlot = -1;
 static CSprite2d s_iconSprite;
+
+static constexpr int kGlobalWords = (kAchCount + 31) / 32;
+
+static bool GetSaved(int i) {
+    auto& word = *reinterpret_cast<uint32_t*>(CTheScripts::ScriptSpace + (kGlobalBase + i / 32) * 4);
+    return (word >> (i % 32)) & 1u;
+}
+
+static void SetSaved(int i) {
+    auto& word = *reinterpret_cast<uint32_t*>(CTheScripts::ScriptSpace + (kGlobalBase + i / 32) * 4);
+    word |= 1u << (i % 32);
+}
 
 static struct { bool active = false; ULONGLONG startTick = 0; std::string label, desc; } s_toast;
 static std::queue<int> s_queue;
@@ -34,10 +46,10 @@ static void OnDraw() {
         s_toast.label     = kAch[i].label;
         s_toast.desc      = kAch[i].description ? kAch[i].description : "";
 
-        if (s_txdSlot != -1) {
+        if (g_achTxdSlot != -1) {
             s_iconSprite.Delete();
             CTxdStore::PushCurrentTxd();
-            CTxdStore::SetCurrentTxd(s_txdSlot);
+            CTxdStore::SetCurrentTxd(g_achTxdSlot);
             s_iconSprite.SetTexture(const_cast<char*>(kAch[i].icon));
             CTxdStore::PopCurrentTxd();
         }
@@ -102,15 +114,15 @@ struct AchievementsPlugin {
         if (char* p = strrchr(s_txdPath, '\\')) strcpy_s(p + 1, MAX_PATH - (p + 1 - s_txdPath), "achievements.txd");
 
         Events::initRwEvent += [] {
-            s_txdSlot = CTxdStore::AddTxdSlot("achievements");
-            CTxdStore::LoadTxd(s_txdSlot, s_txdPath);
-            CTxdStore::AddRef(s_txdSlot);
+            g_achTxdSlot = CTxdStore::AddTxdSlot("achievements");
+            CTxdStore::LoadTxd(g_achTxdSlot, s_txdPath);
+            CTxdStore::AddRef(g_achTxdSlot);
         };
         Events::shutdownRwEvent += [] {
             s_iconSprite.Delete();
-            CTxdStore::RemoveRef(s_txdSlot);
-            CTxdStore::RemoveTxdSlot(s_txdSlot);
-            s_txdSlot = -1;
+            CTxdStore::RemoveRef(g_achTxdSlot);
+            CTxdStore::RemoveTxdSlot(g_achTxdSlot);
+            g_achTxdSlot = -1;
         };
     }
 
@@ -135,8 +147,10 @@ struct AchievementsPlugin {
         for (int i = 0; i < kAchCount; i++) {
             if (m_unlocked[i]) continue;
             try {
-                if (kAch[i].check()) { m_unlocked[i] = true; s_queue.push(i); }
+                if (kAch[i].check()) { m_unlocked[i] = true; SetSaved(i); s_queue.push(i); }
             } catch (...) {}
         }
     }
 } gInstance;
+
+bool IsAchievementUnlocked(int i) { return gInstance.m_unlocked[i] || GetSaved(i); }

@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: version
+        shell: bash
+        run: |
+          latest=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          if [ -z "$latest" ]; then
+            next="v0.1.0"
+          else
+            IFS='.' read -r major minor patch <<< "${latest#v}"
+            next="v${major}.${minor}.$((patch + 1))"
+          fi
+          echo "tag=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Clone plugin-sdk
+        run: git clone --depth 1 https://github.com/DK22Pac/plugin-sdk.git "${{ runner.temp }}\plugin-sdk"
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build (RetroAchievements)
+        run: |
+          msbuild Achievements.vcxproj `
+            /p:Configuration="Release GTA-SA RA" `
+            /p:Platform=Win32 `
+            /p:PLUGIN_SDK_DIR="${{ runner.temp }}\plugin-sdk"
+
+      - name: Build (Steam)
+        run: |
+          msbuild Achievements.vcxproj `
+            /p:Configuration="Release GTA-SA Steam" `
+            /p:Platform=Win32 `
+            /p:PLUGIN_SDK_DIR="${{ runner.temp }}\plugin-sdk"
+
+      - name: Stage artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist\RA, dist\Steam
+          Copy-Item "bin\GTA-SA RA\Release\Achievements.SA.asi"    dist\RA\Achievements.SA.asi
+          Copy-Item "bin\GTA-SA Steam\Release\Achievements.SA.asi" dist\Steam\Achievements.SA.asi
+          Copy-Item gamefiles\RA\achievements.txd    dist\RA\achievements.txd
+          Copy-Item gamefiles\Steam\achievements.txd dist\Steam\achievements.txd
+          Compress-Archive -Path dist\RA\*    -DestinationPath Achievements.SA.RA.zip
+          Compress-Archive -Path dist\Steam\* -DestinationPath Achievements.SA.Steam.zip
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          files: |
+            Achievements.SA.RA.zip
+            Achievements.SA.Steam.zip
