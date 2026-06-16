@@ -36,6 +36,10 @@ jobs:
 
       - name: Build plugin-sdk
         run: |
+          & "${{ runner.temp }}\plugin-sdk\tools\premake\premake5.exe" `
+            --file="${{ runner.temp }}\plugin-sdk\tools\premake\premake5.lua" `
+            --pluginsdkdir="${{ runner.temp }}\plugin-sdk" `
+            vs2022
           msbuild "${{ runner.temp }}\plugin-sdk\plugin_sa\Plugin_SA.vcxproj" `
             /p:Configuration=Release `
             /p:Platform=Win32
