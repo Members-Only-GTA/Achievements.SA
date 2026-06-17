@@ -1,5 +1,5 @@
 # Achievements.SA
-GTA SA (1.0) PC mod that seeks to recreate the achievements found on [RetroAchievements](https://retroachievements.org/game/2772).
+GTA SA (1.0) PC mod that seeks to recreate the achievements found on [RetroAchievements](https://retroachievements.org/game/2772) and Steam.
 
 ## Requirements
 [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
