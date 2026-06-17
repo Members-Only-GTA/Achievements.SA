@@ -119,7 +119,32 @@ const Achievement kAch[kAchCount] = {
 
     { "Double or Nothin'",
       "Put all your money or the maximum bet on red or black and win.",
-      "ACH26", [] { return false; } },
+      "ACH26", [] {
+          static float s_prevWon  = -1.0f;
+          static int   s_prevFlag = 0;
+          static bool  s_validBet = false;
+
+          int flag  = ScmGlobal(3505);
+          int red   = ScmGlobal(8536);
+          int black = ScmGlobal(8537);
+          int stake = ScmGlobal(8551);
+
+          if (s_prevFlag == 0 && flag == 1 && stake > 0) {
+              bool redOrBlackOnly = (red + black == stake);
+              int money = FindPlayerPed()->GetPlayerInfoForThisPlayerPed()->m_nMoney;
+              bool allMoneyOrMax = money == 0
+                  || stake == 100    || stake == 1000   || stake == 10000
+                  || stake == 100000 || stake == 1000000;
+              s_validBet = redOrBlackOnly && allMoneyOrMax;
+          }
+          s_prevFlag = flag;
+
+          float curWon = CStats::GetStatValue(STAT_MONEY_WON_GAMBLING);
+          bool hit = s_prevWon >= 0.0f && curWon > s_prevWon && s_validBet;
+          if (hit) s_validBet = false;
+          s_prevWon = curWon;
+          return hit;
+      } },
 
     { "Swiss Army Strife",
       "Max all weapon skills.",
