@@ -103,9 +103,16 @@ const Achievement kAch[kAchCount] = {
       "Win a race in Inside Track Betting.",
       "ACH25", [] {
           static float s_prevWon = -1.0f;
+          static int   s_phase   = 0; // 0=idle, 1=in OTB, 2=grace poll after OTB ends
+
+          bool inOtb = CGame::currArea == INTERIOR_OTB;
+          if (inOtb)             s_phase = 1;
+          else if (s_phase == 1) s_phase = 2;
+
           float curWon = CStats::GetStatValue(STAT_MONEY_WON_GAMBLING);
-          bool hit = s_prevWon >= 0.0f && curWon > s_prevWon && ScmGlobal(PLAYER_IN_OTB_FLAG) != 0;
+          bool hit = s_prevWon >= 0.0f && curWon > s_prevWon && s_phase > 0;
           s_prevWon = curWon;
+          if (s_phase == 2) s_phase = 0;
           return hit;
       } },
 

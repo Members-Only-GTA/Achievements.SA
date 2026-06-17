@@ -3,6 +3,7 @@
 #include <CTheScripts.h>
 #include <CStats.h>
 
+static constexpr int INTERIOR_OTB          = 3;
 static constexpr int INTERIOR_CLUCKIN_BELL = 9;
 
 static constexpr int CJ_VOMITS_FOR_MENACE        = 28;
