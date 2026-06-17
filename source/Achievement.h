@@ -12,7 +12,7 @@ struct Achievement {
 static constexpr int kAchCount   = 301;
 static constexpr int kGlobalBase = 7800;
 #elif defined(ACH_SET_STEAM)
-static constexpr int kAchCount   = 35;
+static constexpr int kAchCount   = 34;
 static constexpr int kGlobalBase = 7800;
 #else
 #error "Define ACH_SET_RA or ACH_SET_STEAM"

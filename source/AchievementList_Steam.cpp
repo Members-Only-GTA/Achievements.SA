@@ -170,9 +170,9 @@ const Achievement kAch[kAchCount] = {
       "Earn 100% completion.",
       "ACH33", [] { return CStats::GetPercentageProgress() >= 100.0f; } },
 
-    { "...Here we go again",
-      "Start a new game after getting 100% on a save file.",
-      "ACH34", [] { return false; } },
+    //{ "...Here we go again",
+    //  "Start a new game after getting 100% on a save file.",
+    //  "ACH34", [] { return false; } },
 
     { "I Ain't No Buster",
       "Unlock all achievements.",

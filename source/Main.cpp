@@ -15,10 +15,14 @@ using namespace plugin;
 
 static constexpr ULONGLONG kDurationMs  = 8000;
 static constexpr ULONGLONG kFadeStartMs = 7000;
-static constexpr float kMargin      = 16.0f;
 static constexpr float kIconSize    = 64.0f;
-static constexpr float kTextX       = kMargin + kIconSize + 10.0f;
-static constexpr float kTop         = 200.0f;
+static constexpr float kToastH      = 80.0f;
+static constexpr float kBgPad       = 10.0f;
+static constexpr float kTop         = 80.0f;
+static constexpr float kTextOffX    = kIconSize + 12.0f;
+static constexpr float kTextRightPad = 14.0f;
+static constexpr float kMaxTextW    = 360.0f;
+static constexpr float kMinTextW    = 80.0f;
 
 int g_achTxdSlot = -1;
 static CSprite2d s_iconSprite;
@@ -69,22 +73,85 @@ static void OnDraw() {
         : 1.0f - static_cast<float>(elapsed - kFadeStartMs) / (kDurationMs - kFadeStartMs);
     const uint8_t alpha = static_cast<uint8_t>(255 * t);
 
+    const float maxTextPx = SCREEN_COORD(kMaxTextW);
+    const float minTextPx = SCREEN_COORD(kMinTextW);
+
+    CFont::SetProportional(true);
+    CFont::SetFontStyle(FONT_PRICEDOWN);
+    CFont::SetScale(SCREEN_MULTIPLIER(0.75f), SCREEN_MULTIPLIER(1.5f));
+    float labelW = CFont::GetStringWidth(s_toast.label.c_str(), true);
+    if (labelW > maxTextPx) labelW = maxTextPx;
+
+    float descW = 0.0f;
+    if (!s_toast.desc.empty()) {
+        CFont::SetFontStyle(FONT_SUBTITLES);
+        CFont::SetScale(SCREEN_MULTIPLIER(0.45f), SCREEN_MULTIPLIER(0.9f));
+        descW = CFont::GetStringWidth(s_toast.desc.c_str(), true);
+        if (descW > maxTextPx) descW = maxTextPx;
+    }
+
+    float textW = labelW > descW ? labelW : descW;
+    if (textW < minTextPx) textW = minTextPx;
+
+    const float bgPadPx     = SCREEN_COORD(kBgPad);
+    const float contentW    = SCREEN_COORD(kTextOffX) + textW + SCREEN_COORD(kTextRightPad);
+    const float bgHalfW     = bgPadPx + contentW / 2.0f;
+    const float centerX     = SCREEN_COORD_CENTER_X;
+    const float bgLeft      = centerX - bgHalfW;
+    const float bgRight     = centerX + bgHalfW;
+    const float contentLeft = bgLeft + bgPadPx;
+    const float textX       = contentLeft + SCREEN_COORD(kTextOffX);
+    const float wrapX       = textX + textW;
+
+    CFont::SetBackground(false, false);
+    CFont::SetProportional(true);
+    CFont::SetOrientation(ALIGN_LEFT);
+    CFont::SetFontStyle(FONT_PRICEDOWN);
+    CFont::SetScale(SCREEN_MULTIPLIER(0.75f), SCREEN_MULTIPLIER(1.5f));
+    CFont::SetDropShadowPosition(2);
+    CFont::SetWrapx(wrapX);
+    const int   numTitleLines = CFont::GetNumberLines(textX, SCREEN_COORD(kTop + 10.0f), s_toast.label.c_str());
+    const float titleLineH    = CFont::m_Scale->y * 18.0f;
+    const float extraTitleH   = (numTitleLines - 1) * titleLineH;
+
+    float extraDescH = 0.0f;
+    if (!s_toast.desc.empty()) {
+        CFont::SetFontStyle(FONT_SUBTITLES);
+        CFont::SetScale(SCREEN_MULTIPLIER(0.45f), SCREEN_MULTIPLIER(0.9f));
+        CFont::SetDropShadowPosition(1);
+        CFont::SetWrapx(wrapX);
+        const int   numDescLines = CFont::GetNumberLines(textX, SCREEN_COORD(kTop + 46.0f), s_toast.desc.c_str());
+        const float descLineH    = CFont::m_Scale->y * 18.0f;
+        extraDescH = (numDescLines - 1) * descLineH;
+    }
+    CFont::SetDropShadowPosition(0);
+
+    const float descY = SCREEN_COORD(kTop + 46.0f) + extraTitleH;
+
+    CSprite2d::DrawRect(
+        CRect(bgLeft,
+              SCREEN_COORD(kTop - kBgPad),
+              bgRight,
+              SCREEN_COORD(kTop + kToastH + kBgPad) + extraTitleH + extraDescH),
+        CRGBA(39, 39, 39, static_cast<uint8_t>(220 * t)));
+
     if (s_iconSprite.m_pTexture) {
-        s_iconSprite.Draw(SCREEN_COORD(kMargin), SCREEN_COORD(kTop),
+        s_iconSprite.Draw(contentLeft, SCREEN_COORD(kTop + (kToastH - kIconSize) * 0.5f),
                           SCREEN_COORD(kIconSize), SCREEN_COORD(kIconSize),
                           CRGBA(255, 255, 255, alpha));
     }
 
     CFont::SetBackground(false, false);
-    CFont::SetWrapx(99999.0f);
+    CFont::SetProportional(true);
     CFont::SetOrientation(ALIGN_LEFT);
+    CFont::SetWrapx(wrapX);
 
     CFont::SetFontStyle(FONT_PRICEDOWN);
     CFont::SetScale(SCREEN_MULTIPLIER(0.75f), SCREEN_MULTIPLIER(1.5f));
     CFont::SetColor(CRGBA(255, 215, 0, alpha));
     CFont::SetDropShadowPosition(2);
     CFont::SetDropColor(CRGBA(0, 0, 0, static_cast<uint8_t>(200 * t)));
-    CFont::PrintString(SCREEN_COORD(kTextX), SCREEN_COORD(kTop + 2.0f), s_toast.label.c_str());
+    CFont::PrintString(textX, SCREEN_COORD(kTop + 10.0f), s_toast.label.c_str());
     CFont::SetDropShadowPosition(0);
 
     if (!s_toast.desc.empty()) {
@@ -93,7 +160,7 @@ static void OnDraw() {
         CFont::SetColor(CRGBA(220, 220, 220, alpha));
         CFont::SetDropShadowPosition(1);
         CFont::SetDropColor(CRGBA(0, 0, 0, static_cast<uint8_t>(180 * t)));
-        CFont::PrintString(SCREEN_COORD(kTextX), SCREEN_COORD(kTop + 34.0f), s_toast.desc.c_str());
+        CFont::PrintString(textX, descY, s_toast.desc.c_str());
         CFont::SetDropShadowPosition(0);
     }
 }
