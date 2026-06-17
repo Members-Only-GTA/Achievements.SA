@@ -52,6 +52,7 @@ static constexpr int FLAG_RETURNED_SNAPSHOTS2     = 1518;
 static constexpr int FLAG_RETURNED_TAGS2          = 1519;
 static constexpr int DONE_TRUCK_PROGRESS          = 1492;
 static constexpr int DONE_QUARRY_PROGRESS         = 1493;
+static constexpr int PLAYER_IN_OTB_FLAG           = 1789;
 static constexpr int LOWRIDER_PSCORE              = 1018;
 static constexpr int CPRACE_BEST_TIMES_0          = 2240;
 static constexpr int CS1_RACE_IS_GO               = 2336;

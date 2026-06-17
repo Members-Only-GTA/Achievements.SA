@@ -101,7 +101,13 @@ const Achievement kAch[kAchCount] = {
 
     { "What are the Odds",
       "Win a race in Inside Track Betting.",
-      "ACH25", [] { return false; } },
+      "ACH25", [] {
+          static float s_prevWon = -1.0f;
+          float curWon = CStats::GetStatValue(STAT_MONEY_WON_GAMBLING);
+          bool hit = s_prevWon >= 0.0f && curWon > s_prevWon && ScmGlobal(PLAYER_IN_OTB_FLAG) != 0;
+          s_prevWon = curWon;
+          return hit;
+      } },
 
     { "I'll Have Two Number 9s",
       "Reach maximum weight.",
