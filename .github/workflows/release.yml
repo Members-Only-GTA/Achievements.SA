@@ -2,39 +2,51 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '**.txt'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  release:
+  build:
     runs-on: windows-latest
-    permissions:
-      contents: write
+    strategy:
+      matrix:
+        config:
+          - name: RA
+            conf: "Release GTA-SA RA"
+            zip: Achievements.SA.RA.zip
+            bindir: "bin/GTA-SA RA/Release"
+            txd: "gamefiles/RA/achievements.txd"
+          - name: Steam
+            conf: "Release GTA-SA Steam"
+            zip: Achievements.SA.Steam.zip
+            bindir: "bin/GTA-SA Steam/Release"
+            txd: "gamefiles/Steam/achievements.txd"
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Compute next version
-        id: version
-        shell: bash
-        run: |
-          latest=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
-          if [ -z "$latest" ]; then
-            next="v0.1.0"
-          else
-            IFS='.' read -r major minor patch <<< "${latest#v}"
-            next="v${major}.${minor}.$((patch + 1))"
-          fi
-          echo "tag=$next" >> "$GITHUB_OUTPUT"
+      - name: Cache plugin-sdk
+        uses: actions/cache@v4
+        id: cache-pluginsdk
+        with:
+          path: ${{ runner.temp }}\plugin-sdk
+          key: plugin-sdk-${{ runner.os }}-v1
 
       - name: Clone plugin-sdk
+        if: steps.cache-pluginsdk.outputs.cache-hit != 'true'
         run: git clone --depth 1 https://github.com/DK22Pac/plugin-sdk.git "${{ runner.temp }}\plugin-sdk"
 
       - uses: microsoft/setup-msbuild@v2
 
       - name: Build plugin-sdk
+        if: steps.cache-pluginsdk.outputs.cache-hit != 'true'
         run: |
           & "${{ runner.temp }}\plugin-sdk\tools\premake\premake5.exe" `
             --file="${{ runner.temp }}\plugin-sdk\tools\premake\premake5.lua" `
@@ -46,30 +58,54 @@ jobs:
             /p:PlatformToolset=v145 `
             /p:PLUGIN_SDK_DIR="${{ runner.temp }}\plugin-sdk"
 
-      - name: Build (RetroAchievements)
+      - name: Build (${{ matrix.config.name }})
         run: |
           msbuild Achievements.vcxproj `
-            /p:Configuration="Release GTA-SA RA" `
+            /p:Configuration="${{ matrix.config.conf }}" `
             /p:Platform=Win32 `
             /p:PLUGIN_SDK_DIR="${{ runner.temp }}\plugin-sdk"
 
-      - name: Build (Steam)
-        run: |
-          msbuild Achievements.vcxproj `
-            /p:Configuration="Release GTA-SA Steam" `
-            /p:Platform=Win32 `
-            /p:PLUGIN_SDK_DIR="${{ runner.temp }}\plugin-sdk"
-
-      - name: Stage artifacts
+      - name: Stage artifact
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force dist\RA, dist\Steam
-          Copy-Item "bin\GTA-SA RA\Release\Achievements.SA.asi"    dist\RA\Achievements.SA.asi
-          Copy-Item "bin\GTA-SA Steam\Release\Achievements.SA.asi" dist\Steam\Achievements.SA.asi
-          Copy-Item gamefiles\RA\achievements.txd    dist\RA\achievements.txd
-          Copy-Item gamefiles\Steam\achievements.txd dist\Steam\achievements.txd
-          Compress-Archive -Path dist\RA\*    -DestinationPath Achievements.SA.RA.zip
-          Compress-Archive -Path dist\Steam\* -DestinationPath Achievements.SA.Steam.zip
+          New-Item -ItemType Directory -Force dist
+          Copy-Item "${{ matrix.config.bindir }}/Achievements.SA.asi" dist/Achievements.SA.asi
+          Copy-Item "${{ matrix.config.txd }}" dist/achievements.txd
+          Compress-Archive -Path dist/* -DestinationPath ${{ matrix.config.zip }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.config.name }}
+          path: ${{ matrix.config.zip }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: version
+        run: |
+          latest=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
+          if [ -z "$latest" ]; then
+            next="v0.1.0"
+          else
+            IFS='.' read -r major minor patch <<< "${latest#v}"
+            next="v${major}.${minor}.$((patch + 1))"
+          fi
+          echo "tag=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
 
       - name: Create release
         uses: softprops/action-gh-release@v2
