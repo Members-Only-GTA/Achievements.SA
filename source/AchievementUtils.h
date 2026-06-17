@@ -35,6 +35,10 @@ static constexpr int FLAG_MANSION_MISSION_COUNTER = 626;
 static constexpr int FLAG_GROVE_MISSION_COUNTER   = 627;
 static constexpr int FLAG_RIOT_MISSION_COUNTER    = 629;
 static constexpr int FLAG_CHANGED_HAIR_INTRO2     = 676;
+static constexpr int BOAT_PASSED_ONCE             = 1969;
+static constexpr int FLAG_BIKESCHOOL_PASSED       = 2201;
+static constexpr int F1_BRONZE_AWARD              = 7417;
+static constexpr int PROP_SAVE_HOUSE_BLIP_BASE    = 1621; // prop_save_house_blip[0]; set != 0 when property is purchased
 static constexpr int DONE_AMBULANCE_PROGRESS      = 1487;
 static constexpr int DONE_COPCAR_PROGRESS         = 1488;
 static constexpr int DONE_FIRETRUCK_PROGRESS      = 1489;

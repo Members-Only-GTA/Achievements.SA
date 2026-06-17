@@ -1,6 +1,9 @@
 #ifdef ACH_SET_STEAM
 #include <plugin.h>
 #include <CWanted.h>
+#include <CGangWars.h>
+#include <CPlayerPed.h>
+#include <CPlayerInfo.h>
 #include "Achievement.h"
 #include "AchievementUtils.h"
 
@@ -38,7 +41,11 @@ const Achievement kAch[kAchCount] = {
 
     { "School's Out",
       "Fully complete a vehicle school.",
-      "ACH13", [] { return false; } },
+      "ACH13", [] {
+          return ScmGlobal(F1_BRONZE_AWARD)        >= 1
+              || ScmGlobal(FLAG_BIKESCHOOL_PASSED) >= 1
+              || ScmGlobal(BOAT_PASSED_ONCE)       >= 1;
+      } },
 
     { "Smooth Moves",
       "Perform a perfect dance routine.",
@@ -142,7 +149,14 @@ const Achievement kAch[kAchCount] = {
 
     { "Ain't Nothing But a G Thing",
       "Own all gang warfare turfs, properties and have $1,000,000.",
-      "ACH32", [] { return false; } },
+      "ACH32", [] {
+          if (CGangWars::TerritoryUnderControlPercentage < 1.0f) return false;
+          if (FindPlayerPed()->GetPlayerInfoForThisPlayerPed()->m_nMoney < 1000000) return false;
+          // TODO: check all 9 purchasable properties once indices are confirmed
+          // for (int i : {?, ?, ?})
+          //     if (ScmGlobal(PROP_SAVE_HOUSE_BLIP_BASE + i) == 0) return false;
+          return true;
+      } },
 
     { "Lucky Spinner",
       "Win at least $1,000 in a single spin of the Wheel of Fortune.",
@@ -154,7 +168,7 @@ const Achievement kAch[kAchCount] = {
 
     { "A Legitimate Business",
       "Export all three car lists.",
-      "ACH05", [] { return false; } },
+      "ACH05", Stat(STAT_NUMBER_OF_VEHICLES_EXPORTED, 30.0f) },
 
     { "Not a Player",
       "Go on at least one date with every potential girlfriend.",
