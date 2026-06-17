@@ -4,6 +4,7 @@
 #include <CGangWars.h>
 #include <CPlayerPed.h>
 #include <CPlayerInfo.h>
+#include <CGame.h>
 #include "Achievement.h"
 #include "AchievementUtils.h"
 
@@ -73,7 +74,18 @@ const Achievement kAch[kAchCount] = {
 
     { "With Extra Dip",
       "Buy 8 meals from Cluckin' Bell throughout the game.",
-      "ACH02", [] { return false; } },
+      "ACH02", [] {
+          constexpr int kCountGlobal = kGlobalBase + (kAchCount + 31) / 32;
+          int& count = *reinterpret_cast<int*>(CTheScripts::ScriptSpace + kCountGlobal * 4);
+          if (count >= 8) return true;
+
+          static float s_prevMeals = -1.0f;
+          float curMeals = CStats::GetStatValue(STAT_NUMBER_OF_MEALS_EATEN);
+          if (s_prevMeals >= 0.0f && curMeals > s_prevMeals && CGame::currArea == INTERIOR_CLUCKIN_BELL)
+              ++count;
+          s_prevMeals = curMeals;
+          return count >= 8;
+      } },
 
     { "The End of the Line",
       R"(Complete "End of the Line".)",
@@ -133,7 +145,22 @@ const Achievement kAch[kAchCount] = {
 
     { "Who Needs Directions?",
       R"(Find Mike Toreno without any of the referenced locations during "Mike Toreno".)",
-      "ACH10", [] { return false; } },
+      "ACH10", [] {
+          static int  s_prev            = 0;
+          static bool s_locationVisited = false;
+
+          int flag = ScmGlobal(FLAG_PHONE_DIALOG_DRIV3);
+
+          if (s_prev != 0 && flag == 0)  // new mission attempt
+              s_locationVisited = false;
+
+          if (flag >= 8)  // player entered Doherty zone
+              s_locationVisited = true;
+
+          bool hit = !s_locationVisited && flag >= 24 && s_prev < 24;
+          s_prev = flag;
+          return hit;
+      } },
 
     { "Assassin",
       R"(Stealth kill all enemies in the mission "Madd Dogg's Rhymes".)",

@@ -3,6 +3,8 @@
 #include <CTheScripts.h>
 #include <CStats.h>
 
+static constexpr int INTERIOR_CLUCKIN_BELL = 9;
+
 static constexpr int CJ_VOMITS_FOR_MENACE        = 28;
 static constexpr int FLAG_INTRO_MISSION_COUNTER   = 448;
 static constexpr int FLAG_SWEET_MISSION_COUNTER   = 452;
@@ -53,6 +55,7 @@ static constexpr int DONE_QUARRY_PROGRESS         = 1493;
 static constexpr int LOWRIDER_PSCORE              = 1018;
 static constexpr int CPRACE_BEST_TIMES_0          = 2240;
 static constexpr int CS1_RACE_IS_GO               = 2336;
+static constexpr int FLAG_PHONE_DIALOG_DRIV3       = 7321;
 
 template <typename T>
 static T ReadAddr(uintptr_t addr) { return *reinterpret_cast<T*>(addr); }
