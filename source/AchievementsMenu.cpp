@@ -21,6 +21,9 @@ static int                  s_scroll  = 0;
 typedef const char* (__thiscall* CTextGetFn)(void*, const char*);
 static CTextGetFn s_origCTextGet = nullptr;
 static char       s_achLabel[]   = "ACHIEVEMENTS";
+static uint8_t    s_origBytes[5];
+
+static void WriteJmp();
 
 static const char* __fastcall HookCTextGet(void* self, void* /*edx*/, const char* key) {
     if (key && key[0] == 'A') {
@@ -38,24 +41,25 @@ static const char* __fastcall HookCTextGet(void* self, void* /*edx*/, const char
             return (idx >= 0 && idx < kAchCount) ? kAch[idx].description : "";
         }
     }
-    return s_origCTextGet(self, key);
+    memcpy((void*)0x6A0050, s_origBytes, 5);
+    const char* r = s_origCTextGet(self, key);
+    WriteJmp();
+    return r;
+}
+
+static void WriteJmp() {
+    *(uint8_t*)0x6A0050 = 0xE9;
+    *(int32_t*)(0x6A0050 + 1) = (int32_t)(uintptr_t)HookCTextGet - (int32_t)(0x6A0050 + 5);
 }
 
 static void InstallCTextHook() {
     static bool done = false;
-    if (done) return;
-    done = true;
+    if (done) return; done = true;
     s_origCTextGet = (CTextGetFn)0x6A0050;
-    constexpr uintptr_t kStart = 0x573680, kEnd = 0x585000;
     DWORD old;
-    VirtualProtect((void*)kStart, kEnd - kStart, PAGE_EXECUTE_READWRITE, &old);
-    for (uintptr_t a = kStart; a < kEnd - 4; ++a) {
-        if (*(BYTE*)a != 0xE8) continue;
-        if (a + 5 + *(int32_t*)(a + 1) == (uintptr_t)0x6A0050) {
-            *(int32_t*)(a + 1) = (int32_t)(uintptr_t)HookCTextGet - (int32_t)(a + 5);
-            a += 4;
-        }
-    }
+    VirtualProtect((void*)0x6A0050, 5, PAGE_EXECUTE_READWRITE, &old);
+    memcpy(s_origBytes, (void*)0x6A0050, 5);
+    WriteJmp();
 }
 
 static void RebuildPage() {
