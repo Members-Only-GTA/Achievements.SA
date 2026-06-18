@@ -41,7 +41,11 @@ static constexpr int FLAG_CHANGED_HAIR_INTRO2     = 676;
 static constexpr int BOAT_PASSED_ONCE             = 1969;
 static constexpr int FLAG_BIKESCHOOL_PASSED       = 2201;
 static constexpr int F1_BRONZE_AWARD              = 7417;
-static constexpr int PROP_SAVE_HOUSE_BLIP_BASE    = 1621; // prop_save_house_blip[0]; set != 0 when property is purchased
+static constexpr uintptr_t DANCE_OVERALL_STATE_ADDR = 0x00A8F140; // iCurrentOverallState local var in DANCE thread; 2 = perfect
+static constexpr int PROP_SAVE_HOUSE_BLIP_BASE    = 1621;
+static constexpr int ZEROS_PROPERTY_BOUGHT        = 1620;
+static constexpr int SHOWROOM_CONTACT_BLIP        = 66;
+static constexpr int AIRSTRIP_CONTACT_BLIP        = 55;
 static constexpr int DONE_AMBULANCE_PROGRESS      = 1487;
 static constexpr int DONE_COPCAR_PROGRESS         = 1488;
 static constexpr int DONE_FIRETRUCK_PROGRESS      = 1489;

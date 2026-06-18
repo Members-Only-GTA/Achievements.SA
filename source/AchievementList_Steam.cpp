@@ -2,6 +2,7 @@
 #include <plugin.h>
 #include <CWanted.h>
 #include <CGangWars.h>
+#include <CStats.h>
 #include <CPlayerPed.h>
 #include <CPlayerInfo.h>
 #include <CGame.h>
@@ -50,7 +51,7 @@ const Achievement kAch[kAchCount] = {
 
     { "Smooth Moves",
       "Perform a perfect dance routine.",
-      "ACH16", [] { return false; } },
+      "ACH16", [] { return ReadAddr<int>(DANCE_OVERALL_STATE_ADDR) >= 2; } },
 
     { "What happens in Las Venturas...",
       R"(Complete "Yay Ka-Boom-Boom".)",
@@ -184,18 +185,14 @@ const Achievement kAch[kAchCount] = {
     { "Who Needs Directions?",
       R"(Find Mike Toreno without any of the referenced locations during "Mike Toreno".)",
       "ACH10", [] {
-          static int  s_prev            = 0;
-          static bool s_locationVisited = false;
+          static int s_prev = 0;
 
           int flag = ScmGlobal(FLAG_PHONE_DIALOG_DRIV3);
 
-          if (s_prev != 0 && flag == 0)  // new mission attempt
-              s_locationVisited = false;
+          if (flag == 0)
+              s_prev = 0;
 
-          if (flag >= 8)  // player entered Doherty zone
-              s_locationVisited = true;
-
-          bool hit = !s_locationVisited && flag >= 24 && s_prev < 24;
+          bool hit = flag >= 24 && s_prev < 24 && s_prev < 8;
           s_prev = flag;
           return hit;
       } },
@@ -210,16 +207,36 @@ const Achievement kAch[kAchCount] = {
 
     { "They Can't Stop All of Us",
       R"(Sneak into the underground base without setting off the alarm above ground during "Black Project".)",
-      "ACH15", [] { return false; } },
+      "ACH15", [] {
+          // spotlightstage_d8flag (gta_sa.exe+0x648C78): 0 = no alarm, 3 = definitely spotted.
+          static bool s_alarmRaised = false;
+          static int  s_prev        = 0;
+
+          int flag  = ScmGlobal(FLAG_DESERT_MISSION_COUNTER);
+          int stage = ReadAddr<int>(0x400000 + 0x648C78);
+
+          if (flag == 7)
+              s_alarmRaised |= (stage != 0);
+          else if (s_prev == 7 && flag > 7) {
+              bool won      = !s_alarmRaised;
+              s_alarmRaised = false;
+              s_prev        = flag;
+              return won;
+          } else {
+              s_alarmRaised = false;
+          }
+
+          s_prev = flag;
+          return false;
+      } },
 
     { "Ain't Nothing But a G Thing",
       "Own all gang warfare turfs, properties and have $1,000,000.",
       "ACH32", [] {
           if (CGangWars::TerritoryUnderControlPercentage < 1.0f) return false;
           if (FindPlayerPed()->GetPlayerInfoForThisPlayerPed()->m_nMoney < 1000000) return false;
-          // TODO: check all 9 purchasable properties once indices are confirmed
-          // for (int i : {?, ?, ?})
-          //     if (ScmGlobal(PROP_SAVE_HOUSE_BLIP_BASE + i) == 0) return false;
+          for (int i = 3; i <= 31; i++)
+              if (ScmGlobal(PROP_SAVE_HOUSE_BLIP_BASE + i) == 0) return false;
           return true;
       } },
 
