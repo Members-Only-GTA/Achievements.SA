@@ -6,6 +6,7 @@
 #include <CPlayerPed.h>
 #include <CPlayerInfo.h>
 #include <CGame.h>
+#include <CClock.h>
 #include "Achievement.h"
 #include "AchievementUtils.h"
 
@@ -59,7 +60,23 @@ const Achievement kAch[kAchCount] = {
 
     { "Today Was a Good Day",
       "Go 24 hours (in game) without breaking the law, being wanted, killing or harming anyone.",
-      "ACH29", [] { return false; } },
+      "ACH29", [] {
+          static int           s_cleanHours = 0;
+          static unsigned char s_prevHour   = 0xFF;
+          static unsigned int  s_prevChaos  = 0;
+
+          unsigned int  chaos = FindPlayerWanted()->m_nChaosLevel;
+          unsigned char hour  = CClock::ms_nGameClockHours;
+
+          if (chaos > s_prevChaos)
+              s_cleanHours = 0;
+          else if (hour != s_prevHour && s_prevHour != 0xFF)
+              s_cleanHours = (chaos == 0) ? s_cleanHours + 1 : 0;
+
+          s_prevChaos = chaos;
+          s_prevHour  = hour;
+          return chaos == 0 && s_cleanHours >= 24;
+      } },
 
     { "Horror of the Santa Maria",
       "Drown.",
@@ -242,7 +259,14 @@ const Achievement kAch[kAchCount] = {
 
     { "Lucky Spinner",
       "Win at least $1,000 in a single spin of the Wheel of Fortune.",
-      "ACH21", [] { return false; } },
+      "ACH21", [] {
+          static float s_prevWon = -1.0f;
+          float curWon = CStats::GetStatValue(STAT_MONEY_WON_GAMBLING);
+          bool committed = ScmGlobal(WOF_INITIAL_STAKE) > 0 && ScmGlobal(WOF_REFUND) == 0;
+          bool hit = s_prevWon >= 0.0f && curWon - s_prevWon >= 1000.0f && committed;
+          s_prevWon = curWon;
+          return hit;
+      } },
 
     { "Hoopin' it Up",
       "Score at least 30 points in the basketball mini-game.",
