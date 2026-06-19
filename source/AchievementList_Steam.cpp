@@ -7,14 +7,94 @@
 #include <CPlayerInfo.h>
 #include <CGame.h>
 #include <CClock.h>
+#include <CPed.h>
+#include <CPools.h>
 #include "Achievement.h"
 #include "AchievementUtils.h"
+#include <unordered_set>
+#include <unordered_map>
 
 using namespace plugin;
 
 bool IsAchievementUnlocked(int i);
 
-void ResetAchievementState() {}
+// ---- Assassin: stealth kill all guards in "Madd Dogg's Rhymes" (strap2, area 5) ----
+namespace Ach_Assassin {
+    static bool  s_wasDetected   = false;
+    static bool  s_nonStealth    = false;
+    static bool  s_wasInMansion  = false;
+    static bool  s_prevInMansion = false;
+    static int   s_stealthKills  = 0;
+    static std::unordered_set<CPed*>        s_seen;
+    static std::unordered_map<CPed*, float> s_hp;
+
+    static bool InMansion() {
+        CPed* p = FindPlayerPed();
+        return p && p->m_nAreaCode == 5;
+    }
+
+    static bool IsStealthAnim() {
+        CPed* p = FindPlayerPed();
+        return p && p->m_pRwClump &&
+               RpAnimBlendClumpGetAssociation(p->m_pRwClump, "KILL_PARTIAL") != nullptr;
+    }
+
+    static void Reset() {
+        s_wasDetected   = false;
+        s_nonStealth    = false;
+        s_wasInMansion  = false;
+        s_prevInMansion = false;
+        s_stealthKills  = 0;
+        s_seen.clear();
+        s_hp.clear();
+    }
+
+    static void OnFrame() {
+        bool inMansion = InMansion();
+        // Each new mansion entry = new mission attempt, start fresh
+        if (inMansion && !s_prevInMansion)
+            Reset();
+        s_prevInMansion = inMansion;
+        if (!inMansion) return;
+
+        s_wasInMansion = true;
+        CPed*       player     = FindPlayerPed();
+        bool        stealthNow = IsStealthAnim();
+        eWeaponType curWep     = player->GetWeapon()->m_eWeaponType;
+
+        for (int i = 0; i < CPools::ms_pPedPool->m_nSize; i++) {
+            CPed* ped = CPools::ms_pPedPool->GetAt(i);
+            if (!ped || ped->m_nPedType != PED_TYPE_MISSION1 || ped->m_nAreaCode != 5)
+                continue;
+
+            s_seen.insert(ped);
+
+            // Detected if a guard is in an alert state or has locked onto the player
+            if (ped->m_ePedState == PEDSTATE_ATTACK ||
+                ped->m_ePedState == PEDSTATE_PURSUE  ||
+                ped->m_ePedState == PEDSTATE_FIGHT    ||
+                reinterpret_cast<CPed*>(ped->m_pTargetedObject) == player)
+                s_wasDetected = true;
+
+            // Track kills: stealth = KILL_PARTIAL anim active OR silenced pistol equipped
+            float hp = ped->m_fHealth;
+            auto  it = s_hp.find(ped);
+            if (it != s_hp.end() && it->second > 0.0f && hp <= 0.0f) {
+                bool stealth = stealthNow || curWep == WEAPONTYPE_PISTOL_SILENCED;
+                if (stealth) s_stealthKills++;
+                else         s_nonStealth = true;
+            }
+            s_hp[ped] = hp;
+        }
+    }
+
+    static struct Init {
+        Init() { Events::gameProcessEvent += OnFrame; }
+    } s_init;
+}
+// ---- end Assassin ----
+
+void ResetAchievementState() { Ach_Assassin::Reset(); }
 
 const Achievement kAch[kAchCount] = {
     { "Getting Started",
@@ -216,7 +296,19 @@ const Achievement kAch[kAchCount] = {
 
     { "Assassin",
       R"(Stealth kill all enemies in the mission "Madd Dogg's Rhymes".)",
-      "ACH27", [] { return false; } },
+      "ACH27", [] {
+          static int s_prev = 0;
+          int cur = ScmGlobal(FLAG_STRAP_MISSION_COUNTER);
+          if (cur < s_prev) s_prev = cur;  // game reset
+          if (cur <= s_prev) return false;
+          bool won = Ach_Assassin::s_wasInMansion  &&
+                     !Ach_Assassin::s_wasDetected   &&
+                     !Ach_Assassin::s_nonStealth    &&
+                     Ach_Assassin::s_stealthKills >= 10;
+          s_prev = cur;
+          Ach_Assassin::Reset();
+          return won;
+      } },
 
     { "Chick Magnet",
       "Achieve maximum sex appeal.",
