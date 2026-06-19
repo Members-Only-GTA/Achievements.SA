@@ -65,6 +65,20 @@ jobs:
             /p:Platform=Win32 `
             /p:PLUGIN_SDK_DIR="${{ runner.temp }}\plugin-sdk"
 
+      - name: Sign (${{ matrix.config.name }})
+        env:
+          PFX_BASE64: ${{ secrets.CODESIGN_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+        shell: pwsh
+        run: |
+          if (-not $env:PFX_BASE64) { Write-Host "No cert configured, skipping."; exit 0 }
+          $pfxPath = "${{ runner.temp }}\cert.pfx"
+          [System.Convert]::FromBase64String($env:PFX_BASE64) | Set-Content $pfxPath -AsByteStream
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
+            Where-Object { $_.Directory.Name -eq "x86" } | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+          & $signtool sign /f $pfxPath /p $env:PFX_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "${{ matrix.config.bindir }}/Achievements.SA.asi"
+          Remove-Item $pfxPath
+
       - name: Stage artifact
         shell: pwsh
         run: |
